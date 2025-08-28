@@ -85,7 +85,7 @@ if ($_POST && verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         // Asegurar que current_total no sea negativo
         $current_total = max(0, $current_total);
         
-        // Insertar nota
+        // Insertar nota (AGREGANDO client_address)
         $stmt = $db->prepare("
             INSERT INTO notes (
                 folio, client_name, client_phone, client_email, client_address, status, 
@@ -167,7 +167,7 @@ $current_page = "notas-nueva";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?> - <?php echo APP_NAME; ?></title>
     
-    <!-- CSS - RUTAS CORREGIDAS -->
+    <!-- CSS -->
     <link rel="stylesheet" href="<?php echo asset('css/style.css'); ?>">
     <link rel="stylesheet" href="<?php echo asset('css/layout.css'); ?>">
     <link rel="stylesheet" href="<?php echo asset('css/nueva-nota.css'); ?>">
@@ -179,13 +179,54 @@ $current_page = "notas-nueva";
             .print-only { display: block !important; }
         }
         .print-only { display: none; }
+        
+        /* Estilos para botones de navegación deshabilitados */
+        .step-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+        
+        /* Estilos para la vista previa mejorada */
+        .print-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #333;
+        }
+        
+        .print-company-info {
+            flex: 1;
+        }
+        
+        .print-client-info {
+            flex: 1;
+            text-align: right;
+        }
+        
+        .print-company-info h2 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+        
+        .print-meta {
+            margin: 3px 0;
+            font-size: 14px;
+        }
+        
+        @media print {
+            .print-header {
+                border-bottom: 1px solid #333;
+            }
+        }
     </style>
 </head>
 <body class="nueva-nota-container">
     
     <!-- Header -->
     <div class="header-section no-print">
-        <a href="<?php echo dashboard_url(); ?>" class="btn-back">
+        <a href="<?php echo BASE_URL; ?>dashboard.php" class="btn-back">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15,18 9,12 15,6"></polyline>
             </svg>
@@ -214,15 +255,15 @@ $current_page = "notas-nueva";
                 <div class="step-number">1</div>
                 <div class="step-label">Cliente</div>
             </button>
-            <button class="step-btn" data-step="2">
+            <button class="step-btn disabled" data-step="2">
                 <div class="step-number">2</div>
                 <div class="step-label">Productos</div>
             </button>
-            <button class="step-btn" data-step="3">
+            <button class="step-btn disabled" data-step="3">
                 <div class="step-number">3</div>
                 <div class="step-label">Pago y Facturación</div>
             </button>
-            <button class="step-btn" data-step="4">
+            <button class="step-btn disabled" data-step="4">
                 <div class="step-number">4</div>
                 <div class="step-label">Vista Previa</div>
             </button>
@@ -259,14 +300,14 @@ $current_page = "notas-nueva";
                     </div>
                     
                     <div class="form-group full-width">
-                        <label for="client_address">Dirección</label>
-                        <input type="text" id="client_address" name="client_address" class="form-control" 
-                               placeholder="Dirección completa del cliente">
+                        <label for="client_address">Dirección (opcional)</label>
+                        <textarea id="client_address" name="client_address" class="form-control" rows="2" 
+                                  placeholder="Dirección completa del cliente"></textarea>
                     </div>
                 </div>
 
                 <div class="step-actions">
-                    <a href="<?php echo dashboard_url(); ?>" class="btn-secondary">Cancelar</a>
+                    <a href="<?php echo BASE_URL; ?>dashboard.php" class="btn-secondary">Cancelar</a>
                     <button type="button" class="btn-primary" onclick="nextStep()">Siguiente</button>
                 </div>
             </div>
@@ -473,17 +514,19 @@ $current_page = "notas-nueva";
                     </div>
                     
                     <div class="print-header">
-                        <div>
+                        <div class="print-company-info">
                             <h2>BORMEX · Nota de Trabajo</h2>
+                            <div class="print-meta"><strong>Dirección:</strong> <?php echo htmlspecialchars($company_settings['address'] ?? 'San Miguel Sciosla, Puebla'); ?></div>
+                            <div class="print-meta"><strong>Teléfono:</strong> <?php echo htmlspecialchars($company_settings['phone'] ?? '2211-73-81-50'); ?></div>
+                            <div class="print-meta"><strong>Fecha:</strong> <span id="preview_date"></span></div>
+                        </div>
+                        
+                        <div class="print-client-info">
                             <div class="print-meta"><strong>Folio:</strong> <?php echo htmlspecialchars($nuevo_folio); ?></div>
                             <div class="print-meta"><strong>Cliente:</strong> <span id="preview_client"></span></div>
+                            <div class="print-meta"><strong>Teléfono:</strong> <span id="preview_phone"></span></div>
+                            <div class="print-meta"><strong>Email:</strong> <span id="preview_email"></span></div>
                             <div class="print-meta"><strong>Dirección:</strong> <span id="preview_client_address"></span></div>
-                            <div class="print-meta"><strong>Tel:</strong> <span id="preview_phone"></span> · <strong>Email:</strong> <span id="preview_email"></span></div>
-                        </div>
-                        <div class="print-meta">
-                            <div><strong>Dirección:</strong> <?php echo htmlspecialchars($company_settings['address'] ?? 'San Miguel Sciosla, Puebla'); ?></div>
-                            <div><strong>Teléfono:</strong> <?php echo htmlspecialchars($company_settings['phone'] ?? '2211-73-81-50'); ?></div>
-                            <div><strong>Fecha:</strong> <span id="preview_date"></span></div>
                         </div>
                     </div>
 
@@ -529,11 +572,16 @@ $current_page = "notas-nueva";
         </form>
     </div>
 
+    <!-- JavaScript -->
+    <script src="<?php echo asset('js/app.js'); ?>"></script>
+    <script src="<?php echo asset('js/nueva-nota.js'); ?>"></script>
+    
     <script>
-        // Variables globales
-        let currentStep = 1;
-        let products = [];
-        let productCounter = 0;
+        // Variables globales para nueva nota (evitar conflictos)
+        let notaCurrentStep = 1;
+        let notaProducts = [];
+        let notaProductCounter = 0;
+        let notaCompletedSteps = [1]; // Track de pasos completados
 
         // Formatear moneda
         function formatCurrency(amount) {
@@ -543,72 +591,60 @@ $current_page = "notas-nueva";
             }).format(amount || 0);
         }
 
-        // Navegación de pasos - CON DEBUGGING
+        // Actualizar navegación habilitada/deshabilitada
+        function updateStepNavigation() {
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                const step = parseInt(btn.dataset.step);
+                if (notaCompletedSteps.includes(step) || step === notaCurrentStep) {
+                    btn.classList.remove('disabled');
+                } else {
+                    btn.classList.add('disabled');
+                }
+            });
+        }
+
+        // Navegación de pasos
         function showStep(step) {
-            console.log(`Navegando al paso ${step}`);
-            
-            // Verificar que los elementos existen
-            const stepElement = document.getElementById(`step-${step}`);
-            const stepBtn = document.querySelector(`[data-step="${step}"]`);
-            
-            if (!stepElement) {
-                console.error(`Elemento step-${step} no encontrado`);
-                return;
-            }
-            
-            if (!stepBtn) {
-                console.error(`Botón data-step="${step}" no encontrado`);
-                return;
-            }
-            
             // Ocultar todos los pasos
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.step-btn').forEach(s => s.classList.remove('active'));
             
             // Mostrar paso actual
-            stepElement.classList.add('active');
-            stepBtn.classList.add('active');
+            document.getElementById(`step-${step}`).classList.add('active');
+            document.querySelector(`[data-step="${step}"]`).classList.add('active');
             
-            currentStep = step;
-            console.log(`Paso cambiado a: ${currentStep}`);
+            notaCurrentStep = step;
             
             // Acciones específicas por paso
             if (step === 4) {
-                console.log('Generando vista previa...');
                 generatePreview();
             }
+            
+            // Actualizar navegación
+            updateStepNavigation();
             
             window.scrollTo({ top: 0, behavior: 'smooth' });
         }
 
         function nextStep() {
-            console.log(`nextStep llamado. Paso actual: ${currentStep}`);
-            
-            if (!validateCurrentStep()) {
-                console.log('Validación fallida');
-                return;
-            }
-            
-            if (currentStep < 4) {
-                showStep(currentStep + 1);
-            } else {
-                console.log('Ya estás en el último paso');
+            if (validateCurrentStep() && notaCurrentStep < 4) {
+                // Marcar paso actual como completado
+                if (!notaCompletedSteps.includes(notaCurrentStep + 1)) {
+                    notaCompletedSteps.push(notaCurrentStep + 1);
+                }
+                showStep(notaCurrentStep + 1);
             }
         }
 
         function prevStep() {
-            console.log(`prevStep llamado. Paso actual: ${currentStep}`);
-            
-            if (currentStep > 1) {
-                showStep(currentStep - 1);
-            } else {
-                console.log('Ya estás en el primer paso');
+            if (notaCurrentStep > 1) {
+                showStep(notaCurrentStep - 1);
             }
         }
 
         // Validaciones
         function validateCurrentStep() {
-            switch (currentStep) {
+            switch (notaCurrentStep) {
                 case 1:
                     const clientName = document.getElementById('client_name').value.trim();
                     if (!clientName) {
@@ -619,7 +655,7 @@ $current_page = "notas-nueva";
                     return true;
                     
                 case 2:
-                    if (products.length === 0) {
+                    if (notaProducts.length === 0) {
                         alert('Debe agregar al menos un producto');
                         return false;
                     }
@@ -673,15 +709,16 @@ $current_page = "notas-nueva";
                 return;
             }
             
+            // Agregar producto
             const product = {
-                id: ++productCounter,
+                id: ++notaProductCounter,
                 description: description,
                 quantity: quantity,
                 unit_price: price,
                 subtotal: quantity * price
             };
             
-            products.push(product);
+            notaProducts.push(product);
             
             // Limpiar formulario
             document.getElementById('product_description').value = '';
@@ -689,14 +726,16 @@ $current_page = "notas-nueva";
             document.getElementById('product_price').value = '';
             document.getElementById('product_subtotal').textContent = '$0.00';
             
+            // Actualizar displays
             updateProductsDisplay();
             updateTotals();
             
+            // Enfocar descripción para siguiente producto
             document.getElementById('product_description').focus();
         }
 
         function removeProduct(productId) {
-            products = products.filter(p => p.id !== productId);
+            notaProducts = notaProducts.filter(p => p.id !== productId);
             updateProductsDisplay();
             updateTotals();
         }
@@ -707,7 +746,7 @@ $current_page = "notas-nueva";
             const tableBody = document.getElementById('productsTableBody');
             const totalDisplay = document.getElementById('totalProducts');
             
-            if (products.length === 0) {
+            if (notaProducts.length === 0) {
                 emptyState.style.display = 'block';
                 tableContainer.style.display = 'none';
                 totalDisplay.textContent = '$0.00';
@@ -715,10 +754,11 @@ $current_page = "notas-nueva";
                 emptyState.style.display = 'none';
                 tableContainer.style.display = 'block';
                 
+                // Llenar tabla
                 tableBody.innerHTML = '';
                 let total = 0;
                 
-                products.forEach(product => {
+                notaProducts.forEach(product => {
                     total += product.subtotal;
                     
                     const row = document.createElement('tr');
@@ -739,17 +779,20 @@ $current_page = "notas-nueva";
                 totalDisplay.textContent = formatCurrency(total);
             }
             
+            // Crear campos ocultos para envío
             createHiddenProductFields();
         }
 
         function createHiddenProductFields() {
+            // Remover campos existentes
             document.querySelectorAll('input[name^="items["]').forEach(input => {
                 input.remove();
             });
             
+            // Crear nuevos campos
             const form = document.getElementById('notaForm');
             
-            products.forEach((product, index) => {
+            notaProducts.forEach((product, index) => {
                 const fields = [
                     { name: `items[${index}][description]`, value: product.description },
                     { name: `items[${index}][quantity]`, value: product.quantity },
@@ -768,7 +811,7 @@ $current_page = "notas-nueva";
 
         // Cálculo de totales
         function updateTotals() {
-            const subtotal = products.reduce((sum, product) => sum + product.subtotal, 0);
+            const subtotal = notaProducts.reduce((sum, product) => sum + product.subtotal, 0);
             const discount = parseFloat(document.getElementById('discount').value) || 0;
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
@@ -779,36 +822,27 @@ $current_page = "notas-nueva";
             const currentTotal = Math.max(0, total - advance);
             
             // Actualizar displays
-            const subtotalEl = document.getElementById('display_subtotal');
-            const discountEl = document.getElementById('display_discount');
-            const taxEl = document.getElementById('display_tax');
-            const totalEl = document.getElementById('display_total');
-            const advanceEl = document.getElementById('display_advance');
-            const currentEl = document.getElementById('display_current');
-            
-            if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
-            if (discountEl) discountEl.textContent = formatCurrency(discount);
-            if (taxEl) taxEl.textContent = formatCurrency(tax);
-            if (totalEl) totalEl.textContent = formatCurrency(total);
-            if (advanceEl) advanceEl.textContent = formatCurrency(advance);
-            if (currentEl) currentEl.textContent = formatCurrency(currentTotal);
+            document.getElementById('display_subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('display_discount').textContent = formatCurrency(discount);
+            document.getElementById('display_tax').textContent = formatCurrency(tax);
+            document.getElementById('display_total').textContent = formatCurrency(total);
+            document.getElementById('display_advance').textContent = formatCurrency(advance);
+            document.getElementById('display_current').textContent = formatCurrency(currentTotal);
         }
 
         // Toggle campos de facturación
         function toggleInvoiceFields() {
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const invoiceFields = document.getElementById('invoice_fields');
-            const taxIdField = document.getElementById('tax_id');
-            const businessNameField = document.getElementById('business_name');
             
             if (requiresInvoice) {
                 invoiceFields.style.display = 'block';
-                if (taxIdField) taxIdField.required = true;
-                if (businessNameField) businessNameField.required = true;
+                document.getElementById('tax_id').required = true;
+                document.getElementById('business_name').required = true;
             } else {
                 invoiceFields.style.display = 'none';
-                if (taxIdField) taxIdField.required = false;
-                if (businessNameField) businessNameField.required = false;
+                document.getElementById('tax_id').required = false;
+                document.getElementById('business_name').required = false;
             }
             
             updateTotals();
@@ -825,41 +859,32 @@ $current_page = "notas-nueva";
             const observations = document.getElementById('observations').value.trim();
             
             // Llenar datos del cliente
-            const elements = {
-                'preview_client': clientName || '—',
-                'preview_phone': clientPhone || '—',
-                'preview_email': clientEmail || '—',
-                'preview_client_address': clientAddress || '—',
-                'preview_date': new Date().toLocaleString('es-MX'),
-                'preview_method': getPaymentMethodText(paymentMethod),
-                'preview_status': getStatusText(status),
-                'preview_observations': observations || '—'
-            };
-            
-            Object.keys(elements).forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.textContent = elements[id];
-            });
+            document.getElementById('preview_client').textContent = clientName || '—';
+            document.getElementById('preview_phone').textContent = clientPhone || '—';
+            document.getElementById('preview_email').textContent = clientEmail || '—';
+            document.getElementById('preview_client_address').textContent = clientAddress || '—';
+            document.getElementById('preview_date').textContent = new Date().toLocaleString('es-MX');
+            document.getElementById('preview_method').textContent = getPaymentMethodText(paymentMethod);
+            document.getElementById('preview_status').textContent = getStatusText(status);
+            document.getElementById('preview_observations').textContent = observations || '—';
             
             // Llenar tabla de productos
             const tbody = document.getElementById('preview_items');
-            if (tbody) {
-                tbody.innerHTML = '';
-                
-                products.forEach(product => {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td>${escapeHtml(product.description)}</td>
-                        <td>${product.quantity}</td>
-                        <td>${formatCurrency(product.unit_price)}</td>
-                        <td>${formatCurrency(product.subtotal)}</td>
-                    `;
-                    tbody.appendChild(row);
-                });
-            }
+            tbody.innerHTML = '';
+            
+            notaProducts.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${escapeHtml(product.description)}</td>
+                    <td>${product.quantity}</td>
+                    <td>${formatCurrency(product.unit_price)}</td>
+                    <td>${formatCurrency(product.subtotal)}</td>
+                `;
+                tbody.appendChild(row);
+            });
             
             // Calcular y mostrar totales
-            const subtotal = products.reduce((sum, product) => sum + product.subtotal, 0);
+            const subtotal = notaProducts.reduce((sum, product) => sum + product.subtotal, 0);
             const discount = parseFloat(document.getElementById('discount').value) || 0;
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const advance = parseFloat(document.getElementById('advance_payment').value) || 0;
@@ -869,19 +894,12 @@ $current_page = "notas-nueva";
             const total = subtotalAfterDiscount + tax;
             const currentTotal = Math.max(0, total - advance);
             
-            const previewElements = {
-                'preview_subtotal': formatCurrency(subtotal),
-                'preview_discount_amount': formatCurrency(discount),
-                'preview_tax': formatCurrency(tax),
-                'preview_total': formatCurrency(total),
-                'preview_advance': formatCurrency(advance),
-                'preview_current': formatCurrency(currentTotal)
-            };
-            
-            Object.keys(previewElements).forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.textContent = previewElements[id];
-            });
+            document.getElementById('preview_subtotal').textContent = formatCurrency(subtotal);
+            document.getElementById('preview_discount_amount').textContent = formatCurrency(discount);
+            document.getElementById('preview_tax').textContent = formatCurrency(tax);
+            document.getElementById('preview_total').textContent = formatCurrency(total);
+            document.getElementById('preview_advance').textContent = formatCurrency(advance);
+            document.getElementById('preview_current').textContent = formatCurrency(currentTotal);
         }
 
         // Utilidades
@@ -918,74 +936,33 @@ $current_page = "notas-nueva";
             window.print();
         }
 
-        // Event listeners - CON DEBUGGING MEJORADO
+        // Event listeners
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM cargado correctamente');
+            // Actualizar subtotal del producto en tiempo real
+            document.getElementById('product_quantity').addEventListener('input', updateProductSubtotal);
+            document.getElementById('product_price').addEventListener('input', updateProductSubtotal);
             
-            // Verificar que todos los elementos críticos existen
-            const criticalElements = [
-                'product_quantity', 'product_price', 'advance_payment', 
-                'discount', 'requires_invoice', 'step-1', 'step-2', 'step-3', 'step-4'
-            ];
-            
-            criticalElements.forEach(id => {
-                const element = document.getElementById(id);
-                if (!element) {
-                    console.error(`Elemento crítico faltante: ${id}`);
-                } else {
-                    console.log(`Elemento encontrado: ${id}`);
-                }
-            });
-            
-            // Verificar botones de pasos
-            const stepButtons = document.querySelectorAll('.step-btn');
-            console.log(`Botones de pasos encontrados: ${stepButtons.length}`);
-            
-            // Configurar event listeners
-            const quantityInput = document.getElementById('product_quantity');
-            const priceInput = document.getElementById('product_price');
-            const advanceInput = document.getElementById('advance_payment');
-            const discountInput = document.getElementById('discount');
-            const invoiceCheckbox = document.getElementById('requires_invoice');
-            
-            if (quantityInput) {
-                quantityInput.addEventListener('input', updateProductSubtotal);
-                console.log('Event listener agregado a quantity');
-            }
-            
-            if (priceInput) {
-                priceInput.addEventListener('input', updateProductSubtotal);
-                console.log('Event listener agregado a price');
-            }
-            
-            if (advanceInput) {
-                advanceInput.addEventListener('input', updateTotals);
-                console.log('Event listener agregado a advance');
-            }
-            
-            if (discountInput) {
-                discountInput.addEventListener('input', updateTotals);
-                console.log('Event listener agregado a discount');
-            }
-            
-            if (invoiceCheckbox) {
-                invoiceCheckbox.addEventListener('change', toggleInvoiceFields);
-                console.log('Event listener agregado a invoice checkbox');
-            }
+            // Actualizar totales en tiempo real
+            document.getElementById('advance_payment').addEventListener('input', updateTotals);
+            document.getElementById('discount').addEventListener('input', updateTotals);
+            document.getElementById('requires_invoice').addEventListener('change', toggleInvoiceFields);
             
             // Inicializar
             updateProductsDisplay();
             updateTotals();
-            
-            console.log('Inicialización completada');
+            updateStepNavigation();
         });
 
-        // Navigation con botones
+        // Navigation con botones - MEJORADO CON VALIDACIÓN
         document.querySelectorAll('.step-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const step = parseInt(this.dataset.step);
-                if (step <= currentStep || currentStep === 4) {
+                
+                // Solo permitir navegar a pasos completados o retroceder
+                if (notaCompletedSteps.includes(step) || step < notaCurrentStep) {
                     showStep(step);
+                } else {
+                    alert('Debe completar el paso actual antes de continuar');
                 }
             });
         });

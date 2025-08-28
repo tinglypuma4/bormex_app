@@ -3,7 +3,7 @@ require_once('../../../includes/config.php');
 
 // Verificar que el usuario esté logueado
 if (!isLoggedIn()) {
-    redirect('../../index.php');
+    redirect('../../../index.php');
 }
 
 // Procesar acciones AJAX
@@ -297,10 +297,20 @@ $current_page = "notas-historial";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?> - <?php echo APP_NAME; ?></title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="../../public_html/assets/css/style.css">
-    <link rel="stylesheet" href="../../public_html/assets/css/layout.css">
-    <link rel="stylesheet" href="../../public_html/assets/css/dashboard.css">
+    <!-- CSS CORREGIDO - Usar funciones helper -->
+    <link rel="stylesheet" href="<?php echo asset('css/style.css'); ?>">
+    <link rel="stylesheet" href="<?php echo asset('css/layout.css'); ?>">
+    <link rel="stylesheet" href="<?php echo asset('css/dashboard.css'); ?>">
+    
+    <!-- DEBUG CSS URLs solo en desarrollo -->
+    <?php if (ini_get('display_errors') && !isAjaxRequest()): ?>
+    <!-- 
+    DEBUG HISTORIAL CSS:
+    style.css: <?php echo asset('css/style.css'); ?>
+    layout.css: <?php echo asset('css/layout.css'); ?>
+    dashboard.css: <?php echo asset('css/dashboard.css'); ?>
+    -->
+    <?php endif; ?>
     
     <style>
         .historial-page {
@@ -471,6 +481,42 @@ $current_page = "notas-historial";
         .btn-delete {
             background: var(--danger);
             color: white;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-secondary:hover {
+            background: #545b62;
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+            display: inline-block;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+            transform: translateY(-1px);
         }
         
         .empty-state {
@@ -654,8 +700,8 @@ $current_page = "notas-historial";
         <div class="page-header">
             <h1>Historial de Notas</h1>
             <div style="display: flex; gap: 12px;">
-                <a href="../../dashboard.php" class="btn-secondary">Dashboard</a>
-                <a href="nueva.php" class="btn-primary">Nueva Nota</a>
+                <a href="<?php echo dashboard_url(); ?>" class="btn-secondary">Dashboard</a>
+                <a href="<?php echo nueva_nota_url(); ?>" class="btn-primary">Nueva Nota</a>
             </div>
         </div>
         
@@ -1379,6 +1425,13 @@ $current_page = "notas-historial";
             document.getElementById('editRequiresInvoice').addEventListener('change', toggleEditInvoiceFields);
             document.getElementById('editAdvancePayment').addEventListener('input', calculateEditTotals);
             document.getElementById('editDiscount').addEventListener('input', calculateEditTotals);
+        });
+        
+        console.log('Historial BORMEX inicializado');
+        console.log('CSS URLs:', {
+            style: '<?php echo asset("css/style.css"); ?>',
+            layout: '<?php echo asset("css/layout.css"); ?>',
+            dashboard: '<?php echo asset("css/dashboard.css"); ?>'
         });
     </script>
 </body>

@@ -186,7 +186,8 @@ function dashboard_url() {
  * Función para debugging de rutas (SOLO EN DESARROLLO)
  */
 function debug_routes() {
-    if (ini_get('display_errors')) {
+    // Solo generar debug HTML si NO es una solicitud AJAX
+    if (ini_get('display_errors') && !isAjaxRequest()) {
         echo "<!-- DEBUG RUTAS:\n";
         echo "BASE_URL: " . BASE_URL . "\n";
         echo "asset('css/style.css'): " . asset('css/style.css') . "\n";
@@ -202,7 +203,8 @@ function debug_routes() {
  * Función para verificar si los archivos CSS existen
  */
 function check_css_files() {
-    if (ini_get('display_errors')) {
+    // Solo generar debug HTML si NO es una solicitud AJAX
+    if (ini_get('display_errors') && !isAjaxRequest()) {
         $css_files = [
             'style.css' => $_SERVER['DOCUMENT_ROOT'] . BASE_URL . 'public_html/assets/css/style.css',
             'layout.css' => $_SERVER['DOCUMENT_ROOT'] . BASE_URL . 'public_html/assets/css/layout.css',
@@ -219,13 +221,22 @@ function check_css_files() {
     }
 }
 
+/**
+ * Detectar si es una solicitud AJAX
+ */
+function isAjaxRequest() {
+    return isset($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+           strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest' ||
+           isset($_POST['action']); // También detectar por POST action (nuestro caso)
+}
+
 // Auto-check de timeout
 if (basename($_SERVER['PHP_SELF']) !== 'index.php') {
     checkSessionTimeout();
 }
 
-// Debug en desarrollo
-if (ini_get('display_errors')) {
+// Debug en desarrollo (solo si no es AJAX)
+if (ini_get('display_errors') && !isAjaxRequest()) {
     debug_routes();
     check_css_files();
 }
