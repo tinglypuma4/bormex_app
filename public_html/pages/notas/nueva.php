@@ -284,7 +284,7 @@ $current_page = "notas-nueva";
                     <div class="form-group">
                         <label for="client_name">Nombre del Cliente *</label>
                         <input type="text" id="client_name" name="client_name" class="form-control" 
-                               placeholder="Nombre completo" required>
+                               placeholder="Nombre completo">
                     </div>
                     
                     <div class="form-group">
@@ -574,7 +574,6 @@ $current_page = "notas-nueva";
 
     <!-- JavaScript -->
     <script src="<?php echo asset('js/app.js'); ?>"></script>
-    <script src="<?php echo asset('js/nueva-nota.js'); ?>"></script>
     
     <script>
         // Variables globales para nueva nota (evitar conflictos)
@@ -642,7 +641,7 @@ $current_page = "notas-nueva";
             }
         }
 
-        // Validaciones
+        // Validaciones - CORREGIDAS para ser más flexibles
         function validateCurrentStep() {
             switch (notaCurrentStep) {
                 case 1:
@@ -667,8 +666,15 @@ $current_page = "notas-nueva";
                         const taxId = document.getElementById('tax_id').value.trim();
                         const businessName = document.getElementById('business_name').value.trim();
                         
-                        if (!taxId || !businessName) {
-                            alert('RFC y Razón Social son requeridos para facturación');
+                        if (!taxId) {
+                            alert('El RFC es requerido cuando se solicita factura');
+                            document.getElementById('tax_id').focus();
+                            return false;
+                        }
+                        
+                        if (!businessName) {
+                            alert('La Razón Social es requerida cuando se solicita factura');
+                            document.getElementById('business_name').focus();
                             return false;
                         }
                     }
@@ -830,19 +836,23 @@ $current_page = "notas-nueva";
             document.getElementById('display_current').textContent = formatCurrency(currentTotal);
         }
 
-        // Toggle campos de facturación
+        // Toggle campos de facturación - CORREGIDO
         function toggleInvoiceFields() {
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const invoiceFields = document.getElementById('invoice_fields');
+            const taxIdField = document.getElementById('tax_id');
+            const businessNameField = document.getElementById('business_name');
             
             if (requiresInvoice) {
                 invoiceFields.style.display = 'block';
-                document.getElementById('tax_id').required = true;
-                document.getElementById('business_name').required = true;
+                // No usar required HTML, validar con JavaScript
+                taxIdField.setAttribute('data-required', 'true');
+                businessNameField.setAttribute('data-required', 'true');
             } else {
                 invoiceFields.style.display = 'none';
-                document.getElementById('tax_id').required = false;
-                document.getElementById('business_name').required = false;
+                // Remover validaciones cuando no se requiere factura
+                taxIdField.removeAttribute('data-required');
+                businessNameField.removeAttribute('data-required');
             }
             
             updateTotals();
@@ -936,7 +946,7 @@ $current_page = "notas-nueva";
             window.print();
         }
 
-        // Event listeners
+        // Navigation con botones - CORREGIDO
         document.addEventListener('DOMContentLoaded', function() {
             // Actualizar subtotal del producto en tiempo real
             document.getElementById('product_quantity').addEventListener('input', updateProductSubtotal);
@@ -947,24 +957,25 @@ $current_page = "notas-nueva";
             document.getElementById('discount').addEventListener('input', updateTotals);
             document.getElementById('requires_invoice').addEventListener('change', toggleInvoiceFields);
             
+            // Event listeners para navegación con botones - CORREGIDO
+            document.querySelectorAll('.step-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const step = parseInt(this.dataset.step);
+                    
+                    // Solo permitir navegar a pasos completados o retroceder
+                    if (notaCompletedSteps.includes(step) || step < notaCurrentStep) {
+                        showStep(step);
+                    } else {
+                        alert('Debe completar el paso actual antes de continuar');
+                    }
+                });
+            });
+            
             // Inicializar
             updateProductsDisplay();
             updateTotals();
             updateStepNavigation();
-        });
-
-        // Navigation con botones - MEJORADO CON VALIDACIÓN
-        document.querySelectorAll('.step-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const step = parseInt(this.dataset.step);
-                
-                // Solo permitir navegar a pasos completados o retroceder
-                if (notaCompletedSteps.includes(step) || step < notaCurrentStep) {
-                    showStep(step);
-                } else {
-                    alert('Debe completar el paso actual antes de continuar');
-                }
-            });
         });
     </script>
 </body>
