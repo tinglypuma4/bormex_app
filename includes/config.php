@@ -1,7 +1,6 @@
 <?php
 /**
- * Configuración de Base de Datos - Bormex (LOCAL)
- * Para desarrollo local con XAMPP
+ * Configuración de Base de Datos - Bormex (LOCAL) - RUTAS CORREGIDAS
  */
 
 // Iniciar sesión si no está iniciada
@@ -11,15 +10,15 @@ if (session_status() == PHP_SESSION_NONE) {
 
 // Configuración de Base de Datos LOCAL
 define('DB_HOST', 'localhost');
-define('DB_NAME', 'bormex_db');        // Nombre de la BD local
-define('DB_USER', 'root');             // Usuario por defecto de XAMPP
-define('DB_PASS', '');                 // Sin contraseña en XAMPP por defecto
+define('DB_NAME', 'bormex_db');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_CHARSET', 'utf8mb4');
 
-// Configuración de la aplicación
+// Configuración de la aplicación - RUTAS CORREGIDAS
 define('APP_NAME', 'BORMEX');
 define('APP_VERSION', '1.0.0');
-define('BASE_URL', 'http://localhost/bormex_app/'); // URL local
+define('BASE_URL', '/bormex_app/'); // Ruta relativa desde localhost
 
 // Configuración de seguridad
 define('SECRET_KEY', 'desarrollo_local_2024_bormex_secret_key');
@@ -34,7 +33,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 /**
- * Clase para conexión a base de datos - CHARSET UTF-8 CORREGIDO
+ * Clase para conexión a base de datos
  */
 class Database {
     private static $instance = null;
@@ -47,11 +46,9 @@ class Database {
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES => false,
-                // SOLUCION CHARSET: Forzar UTF-8 para caracteres especiales
                 PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ]);
             
-            // Verificar la conexión y charset
             $this->connection->exec("SET NAMES utf8mb4");
             $this->connection->exec("SET CHARACTER SET utf8mb4");
             
@@ -76,7 +73,6 @@ class Database {
 /**
  * Funciones auxiliares
  */
-
 function hashPassword($password) {
     return password_hash($password, PASSWORD_DEFAULT);
 }
@@ -88,7 +84,7 @@ function verifyPassword($password, $hash) {
 function cleanInput($data) {
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8'); // UTF-8 explícito
+    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
     return $data;
 }
 
@@ -113,8 +109,8 @@ function redirect($url) {
 
 function jsonResponse($data, $status = 200) {
     http_response_code($status);
-    header('Content-Type: application/json; charset=utf-8'); // UTF-8 explícito
-    echo json_encode($data, JSON_UNESCAPED_UNICODE); // Preservar caracteres Unicode
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode($data, JSON_UNESCAPED_UNICODE);
     exit();
 }
 
@@ -141,16 +137,21 @@ function checkSessionTimeout() {
 }
 
 /**
- * Funciones para generar URLs correctas - SOLUCION DE RUTAS
+ * FUNCIONES DE RUTAS CORREGIDAS - SEGÚN TU ESTRUCTURA REAL
  */
+
+// Función base para URLs
 function url($path = '') {
     return BASE_URL . ltrim($path, '/');
 }
 
+// ASSETS: CSS, JS, imágenes (desde la raíz)
 function asset($path = '') {
+    // Los assets están en public_html/assets/ desde la raíz
     return BASE_URL . 'public_html/assets/' . ltrim($path, '/');
 }
 
+// PÁGINAS: Para archivos en public_html/pages/
 function page_url($path = '') {
     return BASE_URL . 'public_html/pages/' . ltrim($path, '/');
 }
@@ -177,39 +178,55 @@ function usuarios_url() {
 }
 
 function dashboard_url() {
+    // Dashboard está en la raíz
     return url('dashboard.php');
 }
 
 /**
- * Función para verificar y configurar charset de la base de datos
+ * Función para debugging de rutas (SOLO EN DESARROLLO)
  */
-function checkDatabaseCharset() {
-    try {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->query("SHOW VARIABLES LIKE 'character_set_database'");
-        $result = $stmt->fetch();
-        
-        if ($result && $result['Value'] !== 'utf8mb4') {
-            error_log("ADVERTENCIA: La base de datos no está configurada con utf8mb4. Charset actual: " . $result['Value']);
-            // Mostrar mensaje solo en desarrollo
-            if (ini_get('display_errors')) {
-                echo "<div style='background: #fff3cd; color: #856404; padding: 10px; margin: 10px; border: 1px solid #ffeaa7; border-radius: 4px;'>";
-                echo "<strong>Advertencia:</strong> Para caracteres especiales, configura tu base de datos con charset utf8mb4.";
-                echo "</div>";
-            }
-        }
-    } catch (Exception $e) {
-        error_log("Error verificando charset: " . $e->getMessage());
+function debug_routes() {
+    if (ini_get('display_errors')) {
+        echo "<!-- DEBUG RUTAS:\n";
+        echo "BASE_URL: " . BASE_URL . "\n";
+        echo "asset('css/style.css'): " . asset('css/style.css') . "\n";
+        echo "dashboard_url(): " . dashboard_url() . "\n";
+        echo "nueva_nota_url(): " . nueva_nota_url() . "\n";
+        echo "REQUEST_URI: " . $_SERVER['REQUEST_URI'] . "\n";
+        echo "SCRIPT_NAME: " . $_SERVER['SCRIPT_NAME'] . "\n";
+        echo "-->\n";
     }
 }
 
-// Auto-check de timeout en cada página
+/**
+ * Función para verificar si los archivos CSS existen
+ */
+function check_css_files() {
+    if (ini_get('display_errors')) {
+        $css_files = [
+            'style.css' => $_SERVER['DOCUMENT_ROOT'] . BASE_URL . 'public_html/assets/css/style.css',
+            'layout.css' => $_SERVER['DOCUMENT_ROOT'] . BASE_URL . 'public_html/assets/css/layout.css',
+            'dashboard.css' => $_SERVER['DOCUMENT_ROOT'] . BASE_URL . 'public_html/assets/css/dashboard.css'
+        ];
+        
+        echo "<!-- CSS FILES CHECK:\n";
+        foreach ($css_files as $name => $path) {
+            $exists = file_exists($path);
+            $url = asset('css/' . $name);
+            echo "$name: " . ($exists ? 'EXISTS' : 'MISSING') . " - Path: $path - URL: $url\n";
+        }
+        echo "-->\n";
+    }
+}
+
+// Auto-check de timeout
 if (basename($_SERVER['PHP_SELF']) !== 'index.php') {
     checkSessionTimeout();
 }
 
-// Verificar charset de la BD (solo en desarrollo)
+// Debug en desarrollo
 if (ini_get('display_errors')) {
-    checkDatabaseCharset();
+    debug_routes();
+    check_css_files();
 }
 ?>
