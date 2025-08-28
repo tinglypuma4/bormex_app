@@ -135,10 +135,11 @@ function onPageLoad(pageId) {
 }
 
 /**
- * Navegar a nueva nota
+ * Navegar a nueva nota - RUTA CORREGIDA CON BASE_URL
  */
 function goToNewNote() {
-    window.location.href = 'pages/notas/nueva.php';
+    // Usar la BASE_URL definida en config.php
+    window.location.href = '/bormex_app/public_html/pages/notas/nueva.php';
 }
 
 // ===================

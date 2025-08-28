@@ -3,7 +3,7 @@ require_once('../../../includes/config.php');
 
 // Verificar que el usuario esté logueado
 if (!isLoggedIn()) {
-    redirect('../../index.php');
+    redirect('../../../index.php');
 }
 
 // Obtener configuración de la empresa para generar folio
@@ -36,6 +36,7 @@ if ($_POST && verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $client_name = cleanInput($_POST['client_name']);
         $client_phone = cleanInput($_POST['client_phone'] ?? '');
         $client_email = cleanInput($_POST['client_email'] ?? '');
+        $client_address = cleanInput($_POST['client_address'] ?? '');
         $payment_method = $_POST['payment_method'] ?? 'efectivo';
         $advance_payment = floatval($_POST['advance_payment'] ?? 0);
         $discount = floatval($_POST['discount'] ?? 0);
@@ -87,15 +88,15 @@ if ($_POST && verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         // Insertar nota
         $stmt = $db->prepare("
             INSERT INTO notes (
-                folio, client_name, client_phone, client_email, status, 
+                folio, client_name, client_phone, client_email, client_address, status, 
                 payment_method, advance_payment, discount, requires_invoice, 
                 observations, subtotal, tax_amount, total, current_total, 
                 created_by
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         
         $stmt->execute([
-            $nuevo_folio, $client_name, $client_phone, $client_email, $status,
+            $nuevo_folio, $client_name, $client_phone, $client_email, $client_address, $status,
             $payment_method, $advance_payment, $discount, $requires_invoice,
             $observations, $subtotal, $tax_amount, $total, $current_total,
             $_SESSION['user_id']
@@ -146,7 +147,7 @@ if ($_POST && verifyCSRFToken($_POST['csrf_token'] ?? '')) {
         $db->commit();
         
         // Redireccionar al dashboard con mensaje de éxito
-        redirect('../../dashboard.php?success=nota_creada&folio=' . urlencode($nuevo_folio));
+        redirect('../../../dashboard.php?success=nota_creada&folio=' . urlencode($nuevo_folio));
         
     } catch (Exception $e) {
         $db->rollBack();
@@ -166,10 +167,10 @@ $current_page = "notas-nueva";
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo htmlspecialchars($page_title); ?> - <?php echo APP_NAME; ?></title>
     
-    <!-- CSS -->
-    <link rel="stylesheet" href="public_html/assets/css/style.css">
-    <link rel="stylesheet" href="public_html/assets/css/layout.css">
-    <link rel="stylesheet" href="public_html/assets/css/nueva-nota.css">
+    <!-- CSS - RUTAS CORREGIDAS -->
+    <link rel="stylesheet" href="<?php echo asset('css/style.css'); ?>">
+    <link rel="stylesheet" href="<?php echo asset('css/layout.css'); ?>">
+    <link rel="stylesheet" href="<?php echo asset('css/nueva-nota.css'); ?>">
     
     <style>
         @media print {
@@ -184,7 +185,7 @@ $current_page = "notas-nueva";
     
     <!-- Header -->
     <div class="header-section no-print">
-        <a href="../../../dashboard.php" class="btn-back">
+        <a href="<?php echo dashboard_url(); ?>" class="btn-back">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15,18 9,12 15,6"></polyline>
             </svg>
@@ -256,10 +257,16 @@ $current_page = "notas-nueva";
                         <input type="email" id="client_email" name="client_email" class="form-control" 
                                placeholder="correo@ejemplo.com">
                     </div>
+                    
+                    <div class="form-group full-width">
+                        <label for="client_address">Dirección</label>
+                        <input type="text" id="client_address" name="client_address" class="form-control" 
+                               placeholder="Dirección completa del cliente">
+                    </div>
                 </div>
 
                 <div class="step-actions">
-                    <a href="../../dashboard.php" class="btn-secondary">Cancelar</a>
+                    <a href="<?php echo dashboard_url(); ?>" class="btn-secondary">Cancelar</a>
                     <button type="button" class="btn-primary" onclick="nextStep()">Siguiente</button>
                 </div>
             </div>
@@ -470,6 +477,7 @@ $current_page = "notas-nueva";
                             <h2>BORMEX · Nota de Trabajo</h2>
                             <div class="print-meta"><strong>Folio:</strong> <?php echo htmlspecialchars($nuevo_folio); ?></div>
                             <div class="print-meta"><strong>Cliente:</strong> <span id="preview_client"></span></div>
+                            <div class="print-meta"><strong>Dirección:</strong> <span id="preview_client_address"></span></div>
                             <div class="print-meta"><strong>Tel:</strong> <span id="preview_phone"></span> · <strong>Email:</strong> <span id="preview_email"></span></div>
                         </div>
                         <div class="print-meta">
@@ -521,10 +529,6 @@ $current_page = "notas-nueva";
         </form>
     </div>
 
-    <!-- JavaScript -->
-    <script src="../../public_html/assets/js/app.js"></script>
-    <script src="../../public_html/assets/js/nueva-nota.js"></script>
-    
     <script>
         // Variables globales
         let currentStep = 1;
@@ -539,20 +543,38 @@ $current_page = "notas-nueva";
             }).format(amount || 0);
         }
 
-        // Navegación de pasos
+        // Navegación de pasos - CON DEBUGGING
         function showStep(step) {
+            console.log(`Navegando al paso ${step}`);
+            
+            // Verificar que los elementos existen
+            const stepElement = document.getElementById(`step-${step}`);
+            const stepBtn = document.querySelector(`[data-step="${step}"]`);
+            
+            if (!stepElement) {
+                console.error(`Elemento step-${step} no encontrado`);
+                return;
+            }
+            
+            if (!stepBtn) {
+                console.error(`Botón data-step="${step}" no encontrado`);
+                return;
+            }
+            
             // Ocultar todos los pasos
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.step-btn').forEach(s => s.classList.remove('active'));
             
             // Mostrar paso actual
-            document.getElementById(`step-${step}`).classList.add('active');
-            document.querySelector(`[data-step="${step}"]`).classList.add('active');
+            stepElement.classList.add('active');
+            stepBtn.classList.add('active');
             
             currentStep = step;
+            console.log(`Paso cambiado a: ${currentStep}`);
             
             // Acciones específicas por paso
             if (step === 4) {
+                console.log('Generando vista previa...');
                 generatePreview();
             }
             
@@ -560,14 +582,27 @@ $current_page = "notas-nueva";
         }
 
         function nextStep() {
-            if (validateCurrentStep() && currentStep < 4) {
+            console.log(`nextStep llamado. Paso actual: ${currentStep}`);
+            
+            if (!validateCurrentStep()) {
+                console.log('Validación fallida');
+                return;
+            }
+            
+            if (currentStep < 4) {
                 showStep(currentStep + 1);
+            } else {
+                console.log('Ya estás en el último paso');
             }
         }
 
         function prevStep() {
+            console.log(`prevStep llamado. Paso actual: ${currentStep}`);
+            
             if (currentStep > 1) {
                 showStep(currentStep - 1);
+            } else {
+                console.log('Ya estás en el primer paso');
             }
         }
 
@@ -638,7 +673,6 @@ $current_page = "notas-nueva";
                 return;
             }
             
-            // Agregar producto
             const product = {
                 id: ++productCounter,
                 description: description,
@@ -655,11 +689,9 @@ $current_page = "notas-nueva";
             document.getElementById('product_price').value = '';
             document.getElementById('product_subtotal').textContent = '$0.00';
             
-            // Actualizar displays
             updateProductsDisplay();
             updateTotals();
             
-            // Enfocar descripción para siguiente producto
             document.getElementById('product_description').focus();
         }
 
@@ -683,7 +715,6 @@ $current_page = "notas-nueva";
                 emptyState.style.display = 'none';
                 tableContainer.style.display = 'block';
                 
-                // Llenar tabla
                 tableBody.innerHTML = '';
                 let total = 0;
                 
@@ -708,17 +739,14 @@ $current_page = "notas-nueva";
                 totalDisplay.textContent = formatCurrency(total);
             }
             
-            // Crear campos ocultos para envío
             createHiddenProductFields();
         }
 
         function createHiddenProductFields() {
-            // Remover campos existentes
             document.querySelectorAll('input[name^="items["]').forEach(input => {
                 input.remove();
             });
             
-            // Crear nuevos campos
             const form = document.getElementById('notaForm');
             
             products.forEach((product, index) => {
@@ -751,27 +779,36 @@ $current_page = "notas-nueva";
             const currentTotal = Math.max(0, total - advance);
             
             // Actualizar displays
-            document.getElementById('display_subtotal').textContent = formatCurrency(subtotal);
-            document.getElementById('display_discount').textContent = formatCurrency(discount);
-            document.getElementById('display_tax').textContent = formatCurrency(tax);
-            document.getElementById('display_total').textContent = formatCurrency(total);
-            document.getElementById('display_advance').textContent = formatCurrency(advance);
-            document.getElementById('display_current').textContent = formatCurrency(currentTotal);
+            const subtotalEl = document.getElementById('display_subtotal');
+            const discountEl = document.getElementById('display_discount');
+            const taxEl = document.getElementById('display_tax');
+            const totalEl = document.getElementById('display_total');
+            const advanceEl = document.getElementById('display_advance');
+            const currentEl = document.getElementById('display_current');
+            
+            if (subtotalEl) subtotalEl.textContent = formatCurrency(subtotal);
+            if (discountEl) discountEl.textContent = formatCurrency(discount);
+            if (taxEl) taxEl.textContent = formatCurrency(tax);
+            if (totalEl) totalEl.textContent = formatCurrency(total);
+            if (advanceEl) advanceEl.textContent = formatCurrency(advance);
+            if (currentEl) currentEl.textContent = formatCurrency(currentTotal);
         }
 
         // Toggle campos de facturación
         function toggleInvoiceFields() {
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const invoiceFields = document.getElementById('invoice_fields');
+            const taxIdField = document.getElementById('tax_id');
+            const businessNameField = document.getElementById('business_name');
             
             if (requiresInvoice) {
                 invoiceFields.style.display = 'block';
-                document.getElementById('tax_id').required = true;
-                document.getElementById('business_name').required = true;
+                if (taxIdField) taxIdField.required = true;
+                if (businessNameField) businessNameField.required = true;
             } else {
                 invoiceFields.style.display = 'none';
-                document.getElementById('tax_id').required = false;
-                document.getElementById('business_name').required = false;
+                if (taxIdField) taxIdField.required = false;
+                if (businessNameField) businessNameField.required = false;
             }
             
             updateTotals();
@@ -782,33 +819,44 @@ $current_page = "notas-nueva";
             const clientName = document.getElementById('client_name').value.trim();
             const clientPhone = document.getElementById('client_phone').value.trim();
             const clientEmail = document.getElementById('client_email').value.trim();
+            const clientAddress = document.getElementById('client_address').value.trim();
             const paymentMethod = document.getElementById('payment_method').value;
             const status = document.getElementById('status').value;
             const observations = document.getElementById('observations').value.trim();
             
             // Llenar datos del cliente
-            document.getElementById('preview_client').textContent = clientName || '—';
-            document.getElementById('preview_phone').textContent = clientPhone || '—';
-            document.getElementById('preview_email').textContent = clientEmail || '—';
-            document.getElementById('preview_date').textContent = new Date().toLocaleString('es-MX');
-            document.getElementById('preview_method').textContent = getPaymentMethodText(paymentMethod);
-            document.getElementById('preview_status').textContent = getStatusText(status);
-            document.getElementById('preview_observations').textContent = observations || '—';
+            const elements = {
+                'preview_client': clientName || '—',
+                'preview_phone': clientPhone || '—',
+                'preview_email': clientEmail || '—',
+                'preview_client_address': clientAddress || '—',
+                'preview_date': new Date().toLocaleString('es-MX'),
+                'preview_method': getPaymentMethodText(paymentMethod),
+                'preview_status': getStatusText(status),
+                'preview_observations': observations || '—'
+            };
+            
+            Object.keys(elements).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = elements[id];
+            });
             
             // Llenar tabla de productos
             const tbody = document.getElementById('preview_items');
-            tbody.innerHTML = '';
-            
-            products.forEach(product => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>${escapeHtml(product.description)}</td>
-                    <td>${product.quantity}</td>
-                    <td>${formatCurrency(product.unit_price)}</td>
-                    <td>${formatCurrency(product.subtotal)}</td>
-                `;
-                tbody.appendChild(row);
-            });
+            if (tbody) {
+                tbody.innerHTML = '';
+                
+                products.forEach(product => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${escapeHtml(product.description)}</td>
+                        <td>${product.quantity}</td>
+                        <td>${formatCurrency(product.unit_price)}</td>
+                        <td>${formatCurrency(product.subtotal)}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            }
             
             // Calcular y mostrar totales
             const subtotal = products.reduce((sum, product) => sum + product.subtotal, 0);
@@ -821,12 +869,19 @@ $current_page = "notas-nueva";
             const total = subtotalAfterDiscount + tax;
             const currentTotal = Math.max(0, total - advance);
             
-            document.getElementById('preview_subtotal').textContent = formatCurrency(subtotal);
-            document.getElementById('preview_discount_amount').textContent = formatCurrency(discount);
-            document.getElementById('preview_tax').textContent = formatCurrency(tax);
-            document.getElementById('preview_total').textContent = formatCurrency(total);
-            document.getElementById('preview_advance').textContent = formatCurrency(advance);
-            document.getElementById('preview_current').textContent = formatCurrency(currentTotal);
+            const previewElements = {
+                'preview_subtotal': formatCurrency(subtotal),
+                'preview_discount_amount': formatCurrency(discount),
+                'preview_tax': formatCurrency(tax),
+                'preview_total': formatCurrency(total),
+                'preview_advance': formatCurrency(advance),
+                'preview_current': formatCurrency(currentTotal)
+            };
+            
+            Object.keys(previewElements).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) element.textContent = previewElements[id];
+            });
         }
 
         // Utilidades
@@ -863,27 +918,73 @@ $current_page = "notas-nueva";
             window.print();
         }
 
-        // Event listeners
+        // Event listeners - CON DEBUGGING MEJORADO
         document.addEventListener('DOMContentLoaded', function() {
-            // Actualizar subtotal del producto en tiempo real
-            document.getElementById('product_quantity').addEventListener('input', updateProductSubtotal);
-            document.getElementById('product_price').addEventListener('input', updateProductSubtotal);
+            console.log('DOM cargado correctamente');
             
-            // Actualizar totales en tiempo real
-            document.getElementById('advance_payment').addEventListener('input', updateTotals);
-            document.getElementById('discount').addEventListener('input', updateTotals);
-            document.getElementById('requires_invoice').addEventListener('change', toggleInvoiceFields);
+            // Verificar que todos los elementos críticos existen
+            const criticalElements = [
+                'product_quantity', 'product_price', 'advance_payment', 
+                'discount', 'requires_invoice', 'step-1', 'step-2', 'step-3', 'step-4'
+            ];
+            
+            criticalElements.forEach(id => {
+                const element = document.getElementById(id);
+                if (!element) {
+                    console.error(`Elemento crítico faltante: ${id}`);
+                } else {
+                    console.log(`Elemento encontrado: ${id}`);
+                }
+            });
+            
+            // Verificar botones de pasos
+            const stepButtons = document.querySelectorAll('.step-btn');
+            console.log(`Botones de pasos encontrados: ${stepButtons.length}`);
+            
+            // Configurar event listeners
+            const quantityInput = document.getElementById('product_quantity');
+            const priceInput = document.getElementById('product_price');
+            const advanceInput = document.getElementById('advance_payment');
+            const discountInput = document.getElementById('discount');
+            const invoiceCheckbox = document.getElementById('requires_invoice');
+            
+            if (quantityInput) {
+                quantityInput.addEventListener('input', updateProductSubtotal);
+                console.log('Event listener agregado a quantity');
+            }
+            
+            if (priceInput) {
+                priceInput.addEventListener('input', updateProductSubtotal);
+                console.log('Event listener agregado a price');
+            }
+            
+            if (advanceInput) {
+                advanceInput.addEventListener('input', updateTotals);
+                console.log('Event listener agregado a advance');
+            }
+            
+            if (discountInput) {
+                discountInput.addEventListener('input', updateTotals);
+                console.log('Event listener agregado a discount');
+            }
+            
+            if (invoiceCheckbox) {
+                invoiceCheckbox.addEventListener('change', toggleInvoiceFields);
+                console.log('Event listener agregado a invoice checkbox');
+            }
             
             // Inicializar
             updateProductsDisplay();
             updateTotals();
+            
+            console.log('Inicialización completada');
         });
 
         // Navigation con botones
         document.querySelectorAll('.step-btn').forEach(btn => {
             btn.addEventListener('click', function() {
                 const step = parseInt(this.dataset.step);
-                if (step <= currentStep || currentStep === 4) { // Permitir navegar atrás o desde el último paso
+                if (step <= currentStep || currentStep === 4) {
                     showStep(step);
                 }
             });

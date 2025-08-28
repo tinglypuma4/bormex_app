@@ -24,18 +24,6 @@ function isActive($page_identifier) {
             return false;
     }
 }
-
-// Función para obtener la ruta relativa correcta
-function getBasePath() {
-    global $current_uri;
-    // Si estamos en una subcarpeta, necesitamos subir niveles
-    if (strpos($current_uri, '/pages/') !== false) {
-        return '/../../';
-    }
-    return '';
-}
-
-$basePath = getBasePath();
 ?>
 
 <!-- Sidebar -->
@@ -113,7 +101,7 @@ $basePath = getBasePath();
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="<?php echo $basePath; ?>dashboard.php" 
+                        <a href="<?php echo dashboard_url(); ?>" 
                            class="nav-link <?php echo isActive('dashboard') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper">
@@ -143,7 +131,7 @@ $basePath = getBasePath();
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="<?php echo $basePath; ?>public_html/pages/notas/nueva.php" 
+                        <a href="<?php echo nueva_nota_url(); ?>" 
                            class="nav-link <?php echo isActive('nueva-nota') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper primary">
@@ -158,7 +146,7 @@ $basePath = getBasePath();
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="<?php echo $basePath; ?>public_html/pages/notas/historial.php" 
+                        <a href="<?php echo historial_url(); ?>" 
                            class="nav-link <?php echo isActive('historial') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper">
@@ -202,7 +190,7 @@ $basePath = getBasePath();
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="#" onclick="alert('Página en desarrollo'); return false;" 
+                        <a href="<?php echo clientes_url(); ?>" 
                            class="nav-link <?php echo isActive('clientes') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper">
@@ -286,7 +274,7 @@ $basePath = getBasePath();
                 </div>
                 <ul class="nav-list">
                     <li class="nav-item">
-                        <a href="#" onclick="alert('Configuración próximamente'); return false;" 
+                        <a href="<?php echo empresa_url(); ?>" 
                            class="nav-link <?php echo isActive('empresa') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper">
@@ -301,7 +289,7 @@ $basePath = getBasePath();
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" onclick="alert('Gestión de usuarios próximamente'); return false;" 
+                        <a href="<?php echo usuarios_url(); ?>" 
                            class="nav-link <?php echo isActive('usuarios') ? 'active' : ''; ?>">
                             <div class="nav-link-content">
                                 <div class="nav-icon-wrapper">
@@ -343,7 +331,7 @@ $basePath = getBasePath();
                 <h4>Acciones Rápidas</h4>
             </div>
             <div class="actions-grid">
-                <a href="<?php echo $basePath; ?>public_html/pages/notas/nueva.php" class="action-btn primary" title="Crear nueva nota (Ctrl+N)">
+                <a href="<?php echo nueva_nota_url(); ?>" class="action-btn primary" title="Crear nueva nota (Ctrl+N)">
                     <div class="action-icon">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -352,7 +340,7 @@ $basePath = getBasePath();
                     </div>
                     <span>Nueva Nota</span>
                 </a>
-                <a href="<?php echo $basePath; ?>public_html/pages/notas/historial.php" class="action-btn secondary" title="Ver historial (Ctrl+H)">
+                <a href="<?php echo historial_url(); ?>" class="action-btn secondary" title="Ver historial (Ctrl+H)">
                     <div class="action-icon">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>

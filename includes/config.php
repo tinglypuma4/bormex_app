@@ -34,7 +34,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 /**
- * Clase para conexión a base de datos
+ * Clase para conexión a base de datos - CHARSET UTF-8 CORREGIDO
  */
 class Database {
     private static $instance = null;
@@ -46,8 +46,15 @@ class Database {
             $this->connection = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false
+                PDO::ATTR_EMULATE_PREPARES => false,
+                // SOLUCION CHARSET: Forzar UTF-8 para caracteres especiales
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
             ]);
+            
+            // Verificar la conexión y charset
+            $this->connection->exec("SET NAMES utf8mb4");
+            $this->connection->exec("SET CHARACTER SET utf8mb4");
+            
         } catch (PDOException $e) {
             error_log("Error de conexión: " . $e->getMessage());
             die("Error de conexión a la base de datos: " . $e->getMessage());
@@ -81,7 +88,7 @@ function verifyPassword($password, $hash) {
 function cleanInput($data) {
     $data = trim($data);
     $data = stripslashes($data);
-    $data = htmlspecialchars($data);
+    $data = htmlspecialchars($data, ENT_QUOTES, 'UTF-8'); // UTF-8 explícito
     return $data;
 }
 
@@ -106,8 +113,8 @@ function redirect($url) {
 
 function jsonResponse($data, $status = 200) {
     http_response_code($status);
-    header('Content-Type: application/json');
-    echo json_encode($data);
+    header('Content-Type: application/json; charset=utf-8'); // UTF-8 explícito
+    echo json_encode($data, JSON_UNESCAPED_UNICODE); // Preservar caracteres Unicode
     exit();
 }
 
@@ -133,8 +140,76 @@ function checkSessionTimeout() {
     $_SESSION['last_activity'] = time();
 }
 
+/**
+ * Funciones para generar URLs correctas - SOLUCION DE RUTAS
+ */
+function url($path = '') {
+    return BASE_URL . ltrim($path, '/');
+}
+
+function asset($path = '') {
+    return BASE_URL . 'public_html/assets/' . ltrim($path, '/');
+}
+
+function page_url($path = '') {
+    return BASE_URL . 'public_html/pages/' . ltrim($path, '/');
+}
+
+// URLs específicas más utilizadas
+function nueva_nota_url() {
+    return page_url('notas/nueva.php');
+}
+
+function historial_url() {
+    return page_url('notas/historial.php');
+}
+
+function clientes_url() {
+    return page_url('clientes.php');
+}
+
+function empresa_url() {
+    return page_url('empresa.php');
+}
+
+function usuarios_url() {
+    return page_url('usuarios.php');
+}
+
+function dashboard_url() {
+    return url('dashboard.php');
+}
+
+/**
+ * Función para verificar y configurar charset de la base de datos
+ */
+function checkDatabaseCharset() {
+    try {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->query("SHOW VARIABLES LIKE 'character_set_database'");
+        $result = $stmt->fetch();
+        
+        if ($result && $result['Value'] !== 'utf8mb4') {
+            error_log("ADVERTENCIA: La base de datos no está configurada con utf8mb4. Charset actual: " . $result['Value']);
+            // Mostrar mensaje solo en desarrollo
+            if (ini_get('display_errors')) {
+                echo "<div style='background: #fff3cd; color: #856404; padding: 10px; margin: 10px; border: 1px solid #ffeaa7; border-radius: 4px;'>";
+                echo "<strong>Advertencia:</strong> Para caracteres especiales, configura tu base de datos con charset utf8mb4.";
+                echo "</div>";
+            }
+        }
+    } catch (Exception $e) {
+        error_log("Error verificando charset: " . $e->getMessage());
+    }
+}
+
 // Auto-check de timeout en cada página
 if (basename($_SERVER['PHP_SELF']) !== 'index.php') {
     checkSessionTimeout();
+}
+
+// Verificar charset de la BD (solo en desarrollo)
+if (ini_get('display_errors')) {
+    checkDatabaseCharset();
 }
 ?>

@@ -18,10 +18,10 @@ $current_page = $current_page ?? 'dashboard';
     <meta name="description" content="<?php echo htmlspecialchars($page_description); ?>">
     <meta name="robots" content="noindex,nofollow">
     
-    <!-- CSS Principal - Orden importante -->
-<link rel="stylesheet" href="public_html/assets/css/style.css">
-<link rel="stylesheet" href="public_html/assets/css/layout.css">
-<link rel="stylesheet" href="public_html/assets/css/dashboard.css">
+    <!-- CSS Principal - RUTAS CORREGIDAS -->
+    <link rel="stylesheet" href="../public_html/assets/css/style.css">
+    <link rel="stylesheet" href="../public_html/assets/css/layout.css">
+    <link rel="stylesheet" href="../public_html/assets/css/dashboard.css">
     
     <!-- CSS adicionales si se necesitan -->
     <?php if (isset($additional_css)): ?>
@@ -31,14 +31,14 @@ $current_page = $current_page ?? 'dashboard';
     <?php endif; ?>
     
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="public_html/assets/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../public_html/assets/images/favicon.ico">
 </head>
 <body data-page="<?php echo htmlspecialchars($current_page); ?>">
     <!-- Incluir Navbar -->
-    <?php include 'includes/navbar.php'; ?>
+    <?php include 'navbar.php'; ?>
     
     <!-- Incluir Sidebar -->
-    <?php include 'includes/sidebar.php'; ?>
+    <?php include 'sidebar.php'; ?>
     
     <!-- Contenido Principal -->
     <main class="main-content" id="mainContent">
@@ -54,8 +54,8 @@ $current_page = $current_page ?? 'dashboard';
     <!-- Container para notificaciones toast -->
     <div class="notification-container" id="notificationContainer"></div>
     
-    <!-- JavaScript Principal -->
-    <script src="public_html/assets/js/dashboard.js"></script>
+    <!-- JavaScript Principal - RUTA CORREGIDA -->
+    <script src="../public_html/assets/js/dashboard.js"></script>
     
     <!-- JavaScript adicionales si se necesitan -->
     <?php if (isset($additional_js)): ?>
