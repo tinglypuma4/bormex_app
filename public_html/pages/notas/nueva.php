@@ -180,11 +180,72 @@ $current_page = "notas-nueva";
         }
         .print-only { display: none; }
         
+        /* WIZARD STEP BY STEP - SIN SCROLL */
+        .nueva-nota-container {
+            height: 100vh;
+            overflow: hidden;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #f8f9fa;
+        }
+        
+        .card {
+            height: calc(100vh - 40px);
+            overflow: hidden;
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .steps-nav {
+            flex-shrink: 0;
+            height: 80px;
+        }
+        
+        .step {
+            display: none !important;
+            height: calc(100vh - 140px);
+            overflow-y: auto;
+            padding: 20px;
+            padding-bottom: 40px;
+        }
+        
+        .step.active {
+            display: block !important;
+        }
+        
         /* Estilos para botones de navegación deshabilitados */
         .step-btn.disabled {
             opacity: 0.5;
             cursor: not-allowed;
             pointer-events: none;
+        }
+        
+        .step-btn:not(.disabled):hover {
+            background-color: #e9ecef;
+        }
+        
+        /* Header fijo */
+        .header-section {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            background: white;
+            padding: 10px 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card {
+            margin-top: 60px;
+            height: calc(100vh - 60px);
         }
         
         /* Estilos para la vista previa mejorada */
@@ -215,7 +276,41 @@ $current_page = "notas-nueva";
             font-size: 14px;
         }
         
+        /* Responsive para móviles */
+        @media (max-width: 768px) {
+            .step {
+                height: calc(100vh - 180px);
+                padding: 15px;
+            }
+            
+            .header-section {
+                padding: 8px 15px;
+            }
+            
+            .card {
+                margin: 8px;
+                margin-top: 50px;
+                height: calc(100vh - 50px);
+            }
+        }
+        
         @media print {
+            .nueva-nota-container {
+                position: static;
+                height: auto;
+                overflow: visible;
+            }
+            
+            .card {
+                height: auto;
+                margin: 0;
+            }
+            
+            .step {
+                height: auto !important;
+                overflow: visible !important;
+            }
+            
             .print-header {
                 border-bottom: 1px solid #333;
             }
@@ -284,7 +379,7 @@ $current_page = "notas-nueva";
                     <div class="form-group">
                         <label for="client_name">Nombre del Cliente *</label>
                         <input type="text" id="client_name" name="client_name" class="form-control" 
-                               placeholder="Nombre completo">
+                               placeholder="Nombre completo" required>
                     </div>
                     
                     <div class="form-group">
@@ -590,6 +685,8 @@ $current_page = "notas-nueva";
             }).format(amount || 0);
         }
 
+        // ========== NAVEGACIÓN ROBUSTA STEP-BY-STEP ==========
+        
         // Actualizar navegación habilitada/deshabilitada
         function updateStepNavigation() {
             document.querySelectorAll('.step-btn').forEach(btn => {
@@ -602,15 +699,29 @@ $current_page = "notas-nueva";
             });
         }
 
-        // Navegación de pasos
+        // Navegación de pasos - SIN SCROLL, SOLO UN PASO VISIBLE
         function showStep(step) {
-            // Ocultar todos los pasos
-            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
-            document.querySelectorAll('.step-btn').forEach(s => s.classList.remove('active'));
+            // Validar que el paso sea válido
+            if (step < 1 || step > 4) return;
             
-            // Mostrar paso actual
-            document.getElementById(`step-${step}`).classList.add('active');
-            document.querySelector(`[data-step="${step}"]`).classList.add('active');
+            // Ocultar TODOS los pasos
+            document.querySelectorAll('.step').forEach(s => {
+                s.classList.remove('active');
+            });
+            
+            // Remover clase active de todos los botones
+            document.querySelectorAll('.step-btn').forEach(s => {
+                s.classList.remove('active');
+            });
+            
+            // Mostrar SOLO el paso solicitado
+            const stepElement = document.getElementById(`step-${step}`);
+            const stepButton = document.querySelector(`[data-step="${step}"]`);
+            
+            if (stepElement && stepButton) {
+                stepElement.classList.add('active');
+                stepButton.classList.add('active');
+            }
             
             notaCurrentStep = step;
             
@@ -622,12 +733,14 @@ $current_page = "notas-nueva";
             // Actualizar navegación
             updateStepNavigation();
             
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            // Asegurar que no hay scroll (forzar posición inicial)
+            document.body.scrollTop = 0;
+            document.documentElement.scrollTop = 0;
         }
 
         function nextStep() {
             if (validateCurrentStep() && notaCurrentStep < 4) {
-                // Marcar paso actual como completado
+                // Marcar paso siguiente como completado
                 if (!notaCompletedSteps.includes(notaCurrentStep + 1)) {
                     notaCompletedSteps.push(notaCurrentStep + 1);
                 }
@@ -641,7 +754,7 @@ $current_page = "notas-nueva";
             }
         }
 
-        // Validaciones - CORREGIDAS para ser más flexibles
+        // ========== VALIDACIONES ROBUSTAS ==========
         function validateCurrentStep() {
             switch (notaCurrentStep) {
                 case 1:
@@ -683,7 +796,7 @@ $current_page = "notas-nueva";
             return true;
         }
 
-        // Gestión de productos
+        // ========== GESTIÓN DE PRODUCTOS ==========
         function updateProductSubtotal() {
             const quantity = parseFloat(document.getElementById('product_quantity').value) || 0;
             const price = parseFloat(document.getElementById('product_price').value) || 0;
@@ -815,7 +928,7 @@ $current_page = "notas-nueva";
             });
         }
 
-        // Cálculo de totales
+        // ========== CÁLCULO DE TOTALES ==========
         function updateTotals() {
             const subtotal = notaProducts.reduce((sum, product) => sum + product.subtotal, 0);
             const discount = parseFloat(document.getElementById('discount').value) || 0;
@@ -836,7 +949,7 @@ $current_page = "notas-nueva";
             document.getElementById('display_current').textContent = formatCurrency(currentTotal);
         }
 
-        // Toggle campos de facturación - CORREGIDO
+        // ========== FACTURACIÓN ==========
         function toggleInvoiceFields() {
             const requiresInvoice = document.getElementById('requires_invoice').checked;
             const invoiceFields = document.getElementById('invoice_fields');
@@ -845,7 +958,7 @@ $current_page = "notas-nueva";
             
             if (requiresInvoice) {
                 invoiceFields.style.display = 'block';
-                // No usar required HTML, validar con JavaScript
+                // Marcar campos como requeridos para validación
                 taxIdField.setAttribute('data-required', 'true');
                 businessNameField.setAttribute('data-required', 'true');
             } else {
@@ -858,7 +971,7 @@ $current_page = "notas-nueva";
             updateTotals();
         }
 
-        // Vista previa
+        // ========== VISTA PREVIA ==========
         function generatePreview() {
             const clientName = document.getElementById('client_name').value.trim();
             const clientPhone = document.getElementById('client_phone').value.trim();
@@ -912,7 +1025,7 @@ $current_page = "notas-nueva";
             document.getElementById('preview_current').textContent = formatCurrency(currentTotal);
         }
 
-        // Utilidades
+        // ========== UTILIDADES ==========
         function escapeHtml(text) {
             const map = {
                 '&': '&amp;',
@@ -946,7 +1059,7 @@ $current_page = "notas-nueva";
             window.print();
         }
 
-        // Navigation con botones - CORREGIDO
+        // ========== INICIALIZACIÓN ==========
         document.addEventListener('DOMContentLoaded', function() {
             // Actualizar subtotal del producto en tiempo real
             document.getElementById('product_quantity').addEventListener('input', updateProductSubtotal);
@@ -957,26 +1070,49 @@ $current_page = "notas-nueva";
             document.getElementById('discount').addEventListener('input', updateTotals);
             document.getElementById('requires_invoice').addEventListener('change', toggleInvoiceFields);
             
-            // Event listeners para navegación con botones - CORREGIDO
-            document.querySelectorAll('.step-btn').forEach(btn => {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const step = parseInt(this.dataset.step);
-                    
-                    // Solo permitir navegar a pasos completados o retroceder
-                    if (notaCompletedSteps.includes(step) || step < notaCurrentStep) {
-                        showStep(step);
-                    } else {
-                        alert('Debe completar el paso actual antes de continuar');
-                    }
-                });
-            });
-            
             // Inicializar
             updateProductsDisplay();
             updateTotals();
             updateStepNavigation();
         });
+
+        // ========== NAVEGACIÓN CON BOTONES - COMPLETAMENTE BLOQUEADA ==========
+        // Event listeners para navegación estrictamente controlada
+        document.querySelectorAll('.step-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const step = parseInt(this.dataset.step);
+                
+                // BLOQUEO ESTRICTO: Solo permitir pasos completados o el actual
+                if (notaCompletedSteps.includes(step) || step < notaCurrentStep) {
+                    showStep(step);
+                } else if (step === notaCurrentStep) {
+                    // Ya estamos en este paso, no hacer nada
+                    return;
+                } else {
+                    // Navegación completamente bloqueada con feedback
+                    alert('⚠️ Debe completar el paso actual antes de continuar');
+                    return false;
+                }
+            });
+        });
+
+        // Prevenir navegación por teclado o scroll
+        document.addEventListener('keydown', function(e) {
+            // Bloquear Page Up, Page Down, Home, End que podrían interferir
+            if (['PageUp', 'PageDown', 'Home', 'End'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+
+        // Prevenir scroll manual en el contenedor principal
+        document.addEventListener('wheel', function(e) {
+            if (e.target.closest('.step:not(.active)')) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     </script>
 </body>
 </html>

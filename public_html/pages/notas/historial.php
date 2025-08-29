@@ -1275,65 +1275,247 @@ $current_page = "notas-historial";
         }
         
         // Generar PDF
-        function generatePDF(noteId) {
+         function generatePDF(noteId) {
             const note = currentNotes.find(n => n.id == noteId);
             if (!note) {
                 alert('Nota no encontrada');
                 return;
             }
             
-            // Abrir ventana de impresión con la nota
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(generatePrintHTML(note));
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
+            // Obtener detalles completos de la nota incluyendo productos
+            const formData = new FormData();
+            formData.append('action', 'get_note_details');
+            formData.append('note_id', noteId);
+            
+            fetch(window.location.href, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Abrir ventana de impresión con todos los datos
+                    const printWindow = window.open('', '_blank');
+                    printWindow.document.write(generatePrintHTML(data.note, data.items, data.invoice_data));
+                    printWindow.document.close();
+                    printWindow.focus();
+                    setTimeout(() => {
+                        printWindow.print();
+                    }, 500);
+                } else {
+                    alert('Error al cargar los detalles de la nota: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error de conexión al generar PDF');
+            });
         }
         
-        // Generar HTML para impresión
-        function generatePrintHTML(note) {
+        // Generar HTML para impresión - CON PRODUCTOS COMPLETOS
+        function generatePrintHTML(note, items, invoiceData) {
+            let itemsHTML = '';
+            
+            // Generar filas de productos
+            if (items && items.length > 0) {
+                items.forEach(item => {
+                    itemsHTML += `
+                        <tr>
+                            <td>${item.description}</td>
+                            <td>${item.quantity}</td>
+                            <td>${formatCurrency(item.unit_price)}</td>
+                            <td>${formatCurrency(item.subtotal)}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                itemsHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; color: #666;">No hay productos registrados</td>
+                    </tr>
+                `;
+            }
+            
+            // Generar sección de datos de facturación si existe
+            let invoiceSection = '';
+            if (note.requires_invoice && invoiceData) {
+                invoiceSection = `
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                        <h3>Datos de Facturación</h3>
+                        <div><strong>RFC:</strong> ${invoiceData.tax_id}</div>
+                        <div><strong>Razón Social:</strong> ${invoiceData.business_name}</div>
+                        <div><strong>Dirección Fiscal:</strong> ${invoiceData.address || '—'}</div>
+                        <div><strong>Uso CFDI:</strong> ${invoiceData.cfdi_use}</div>
+                    </div>
+                `;
+            }
+            
             return `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <title>Nota ${note.folio} - BORMEX</title>
                     <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
-                        .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-                        .logo { font-size: 24px; font-weight: bold; }
-                        .info { text-align: right; font-size: 14px; }
-                        .client-info { margin: 20px 0; }
-                        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-                        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-                        th { background: #f5f5f5; }
-                        .totals { text-align: right; margin-top: 20px; }
-                        .footer { margin-top: 30px; font-size: 12px; color: #666; }
+                        body { 
+                            font-family: Arial, sans-serif; 
+                            margin: 20px; 
+                            color: #333; 
+                            line-height: 1.4;
+                        }
+                        .header { 
+                            display: flex; 
+                            justify-content: space-between; 
+                            margin-bottom: 30px;
+                            padding-bottom: 15px;
+                            border-bottom: 2px solid #333;
+                        }
+                        .logo { 
+                            font-size: 28px; 
+                            font-weight: bold; 
+                            color: #2d5a3d;
+                        }
+                        .company-info {
+                            font-size: 14px;
+                            color: #666;
+                            margin-top: 5px;
+                        }
+                        .note-info { 
+                            text-align: right; 
+                            font-size: 14px; 
+                        }
+                        .note-info div {
+                            margin: 3px 0;
+                        }
+                        .client-section { 
+                            margin: 30px 0;
+                            background: #f8f9fa;
+                            padding: 20px;
+                            border-radius: 8px;
+                        }
+                        .client-section h3 {
+                            margin-top: 0;
+                            color: #2d5a3d;
+                            font-size: 18px;
+                            border-bottom: 1px solid #ddd;
+                            padding-bottom: 10px;
+                        }
+                        .client-info {
+                            display: grid;
+                            grid-template-columns: 1fr 1fr;
+                            gap: 15px;
+                            margin-top: 15px;
+                        }
+                        table { 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin: 30px 0; 
+                            font-size: 14px;
+                        }
+                        th, td { 
+                            border: 1px solid #ddd; 
+                            padding: 12px 8px; 
+                            text-align: left; 
+                        }
+                        th { 
+                            background: #f5f5f5; 
+                            font-weight: bold;
+                            color: #2d5a3d;
+                        }
+                        .totals { 
+                            margin-top: 30px;
+                            border: 2px solid #2d5a3d;
+                            border-radius: 8px;
+                            overflow: hidden;
+                        }
+                        .totals-header {
+                            background: #2d5a3d;
+                            color: white;
+                            padding: 12px;
+                            font-weight: bold;
+                            text-align: center;
+                        }
+                        .totals-content {
+                            padding: 20px;
+                            background: #f8f9fa;
+                        }
+                        .total-row {
+                            display: flex;
+                            justify-content: space-between;
+                            padding: 8px 0;
+                            border-bottom: 1px solid #ddd;
+                        }
+                        .total-row:last-child {
+                            border-bottom: none;
+                            font-weight: bold;
+                            font-size: 16px;
+                            margin-top: 10px;
+                            padding-top: 15px;
+                            border-top: 2px solid #2d5a3d;
+                        }
+                        .payment-info {
+                            margin-top: 30px;
+                            padding: 20px;
+                            background: #f0f8f4;
+                            border-radius: 8px;
+                        }
+                        .footer { 
+                            margin-top: 40px; 
+                            font-size: 12px; 
+                            color: #666; 
+                            border-top: 1px solid #ddd;
+                            padding-top: 20px;
+                        }
+                        .footer .terms {
+                            margin-top: 15px;
+                            font-style: italic;
+                        }
+                        .watermark {
+                            position: fixed;
+                            top: 50%;
+                            left: 50%;
+                            transform: translate(-50%, -50%) rotate(-45deg);
+                            font-size: 120px;
+                            color: rgba(45, 90, 61, 0.05);
+                            font-weight: bold;
+                            z-index: -1;
+                            pointer-events: none;
+                        }
                         @media print { 
                             body { margin: 0.5in; } 
                             .no-print { display: none; }
+                            .header { page-break-after: avoid; }
+                            table { page-break-inside: avoid; }
                         }
                     </style>
                 </head>
                 <body>
+                    <div class="watermark">BORMEX</div>
+                    
                     <div class="header">
                         <div>
                             <div class="logo">BORMEX</div>
-                            <div>San Miguel Sciosla, Puebla</div>
-                            <div>Tel: 2211-73-81-50</div>
+                            <div class="company-info">
+                                <div>Bordados y Manualidades Mexicanas</div>
+                                <div>San Miguel Sciosla, Puebla</div>
+                                <div>Tel: 2211-73-81-50</div>
+                            </div>
                         </div>
-                        <div class="info">
+                        <div class="note-info">
                             <div><strong>Folio: ${note.folio}</strong></div>
                             <div>Fecha: ${formatDate(note.created_at)}</div>
                             <div>Estado: ${getStatusText(note.status)}</div>
+                            <div>Método de pago: ${note.payment_method}</div>
                         </div>
                     </div>
                     
-                    <div class="client-info">
-                        <strong>Cliente:</strong> ${note.client_name}<br>
-                        <strong>Teléfono:</strong> ${note.client_phone || '—'}<br>
-                        <strong>Email:</strong> ${note.client_email || '—'}
+                    <div class="client-section">
+                        <h3>Información del Cliente</h3>
+                        <div class="client-info">
+                            <div><strong>Cliente:</strong> ${note.client_name}</div>
+                            <div><strong>Teléfono:</strong> ${note.client_phone || '—'}</div>
+                            <div><strong>Email:</strong> ${note.client_email || '—'}</div>
+                            <div><strong>Dirección:</strong> ${note.client_address || '—'}</div>
+                        </div>
                     </div>
                     
                     <table>
@@ -1341,41 +1523,73 @@ $current_page = "notas-historial";
                             <tr>
                                 <th>Descripción</th>
                                 <th>Cantidad</th>
-                                <th>Precio</th>
+                                <th>Precio Unitario</th>
                                 <th>Subtotal</th>
                             </tr>
                         </thead>
-                        <tbody id="itemsBody">
-                            <!-- Se llena dinámicamente -->
+                        <tbody>
+                            ${itemsHTML}
                         </tbody>
                     </table>
                     
                     <div class="totals">
-                        <div>Subtotal: ${formatCurrency(note.subtotal + note.discount)}</div>
-                        <div>Descuento: ${formatCurrency(note.discount)}</div>
-                        <div>IVA: ${formatCurrency(note.tax_amount)}</div>
-                        <div><strong>Total: ${formatCurrency(note.total)}</strong></div>
-                        <div>Anticipo: ${formatCurrency(note.advance_payment)}</div>
-                        <div><strong>Total Actual: ${formatCurrency(note.current_total)}</strong></div>
-                    </div>
-                    
-                    <div class="footer">
-                        <div><strong>Método de pago:</strong> ${note.payment_method}</div>
-                        ${note.observations ? `<div><strong>Observaciones:</strong> ${note.observations}</div>` : ''}
-                        <div style="margin-top: 20px;">
-                            <div>Después de 30 días no se realizan cambios ni devoluciones.</div>
-                            <div>Si el trabajo se hizo conforme a la nota, no nos hacemos responsables de cambios adicionales.</div>
+                        <div class="totals-header">Resumen de Totales</div>
+                        <div class="totals-content">
+                            <div class="total-row">
+                                <span>Subtotal:</span>
+                                <span>${formatCurrency(note.subtotal + note.discount)}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Descuento:</span>
+                                <span>${formatCurrency(note.discount)}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>IVA (16%):</span>
+                                <span>${formatCurrency(note.tax_amount)}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Total:</span>
+                                <span>${formatCurrency(note.total)}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>Anticipo:</span>
+                                <span>${formatCurrency(note.advance_payment)}</span>
+                            </div>
+                            <div class="total-row">
+                                <span>TOTAL ACTUAL:</span>
+                                <span>${formatCurrency(note.current_total)}</span>
+                            </div>
                         </div>
                     </div>
                     
-                    <div class="no-print" style="margin-top: 30px;">
-                        <button onclick="window.print()">Imprimir</button>
-                        <button onclick="window.close()">Cerrar</button>
+                    <div class="payment-info">
+                        <div><strong>Método de pago:</strong> ${note.payment_method}</div>
+                        <div><strong>Estado de la nota:</strong> ${getStatusText(note.status)}</div>
+                        ${note.observations ? `<div><strong>Observaciones:</strong> ${note.observations}</div>` : ''}
+                    </div>
+                    
+                    ${invoiceSection}
+                    
+                    <div class="footer">
+                        <div><strong>Términos y Condiciones:</strong></div>
+                        <div class="terms">
+                            <div>• Después de 30 días de la fecha de entrega no se realizan cambios ni devoluciones.</div>
+                            <div>• Si el trabajo se hizo conforme a la nota, no nos hacemos responsables de cambios adicionales.</div>
+                            <div>• Los precios están sujetos a cambios sin previo aviso.</div>
+                            <div>• BORMEX se reserva el derecho de rechazar trabajos que no cumplan con nuestros estándares de calidad.</div>
+                        </div>
+                    </div>
+                    
+                    <div class="no-print" style="margin-top: 30px; text-align: center;">
+                        <button onclick="window.print()" style="background: #2d5a3d; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer; margin-right: 10px;">Imprimir PDF</button>
+                        <button onclick="window.close()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; cursor: pointer;">Cerrar</button>
                     </div>
                 </body>
                 </html>
             `;
         }
+        // Generar HTML para impresión
+      
         
         // Eliminar nota
         function deleteNote(noteId, folio) {
